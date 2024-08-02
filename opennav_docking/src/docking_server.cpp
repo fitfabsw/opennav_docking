@@ -422,8 +422,18 @@ bool DockingServer::approachDock(Dock * dock, geometry_msgs::msg::PoseStamped & 
     // with the dock to stop the docking procedure.
     const double backward_projection = 0.25;
     const double yaw = tf2::getYaw(target_pose.pose.orientation);
-    target_pose.pose.position.x += cos(yaw) * backward_projection;
-    target_pose.pose.position.y += sin(yaw) * backward_projection;
+
+    // LK modified 2024/7/1
+    if (dock_backwards_ == false) {
+      target_pose.pose.position.x += cos(yaw) * backward_projection;
+      target_pose.pose.position.y += sin(yaw) * backward_projection;
+    } else {
+      target_pose.pose.position.x -= cos(yaw) * backward_projection;
+      target_pose.pose.position.y -= sin(yaw) * backward_projection;
+    }
+
+    // target_pose.pose.position.x += cos(yaw) * backward_projection;
+    // target_pose.pose.position.y += sin(yaw) * backward_projection;
     tf2_buffer_->transform(target_pose, target_pose, base_frame_);
 
     // Compute and publish controls
