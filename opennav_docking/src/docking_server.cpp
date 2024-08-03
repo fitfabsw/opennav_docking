@@ -409,12 +409,14 @@ bool DockingServer::approachDock(Dock * dock, geometry_msgs::msg::PoseStamped & 
     geometry_msgs::msg::PoseStamped target_pose = dock_pose;
     target_pose.header.stamp = rclcpp::Time(0);
 
+    // LK modified 2024/8/3
+    // below are introduced after commit 5a38 (2024/7/22), however it doesn't work so I comment out
     // Make sure that the target pose is pointing at the robot when moving backwards
     // This is to ensure that the robot doesn't try to dock from the wrong side
-    if (dock_backwards_) {
-      target_pose.pose.orientation = nav2_util::geometry_utils::orientationAroundZAxis(
-        tf2::getYaw(target_pose.pose.orientation) + M_PI);
-    }
+    // if (dock_backwards_) {
+    //   target_pose.pose.orientation = nav2_util::geometry_utils::orientationAroundZAxis(
+    //     tf2::getYaw(target_pose.pose.orientation) + M_PI);
+    // }
 
     // The control law can get jittery when close to the end when atan2's can explode.
     // Thus, we backward project the controller's target pose a little bit after the
@@ -422,8 +424,18 @@ bool DockingServer::approachDock(Dock * dock, geometry_msgs::msg::PoseStamped & 
     // with the dock to stop the docking procedure.
     const double backward_projection = 0.25;
     const double yaw = tf2::getYaw(target_pose.pose.orientation);
-    target_pose.pose.position.x += cos(yaw) * backward_projection;
-    target_pose.pose.position.y += sin(yaw) * backward_projection;
+
+    // LK modified 2024/7/1
+    if (dock_backwards_ == false) {
+      target_pose.pose.position.x += cos(yaw) * backward_projection;
+      target_pose.pose.position.y += sin(yaw) * backward_projection;
+    } else {
+      target_pose.pose.position.x -= cos(yaw) * backward_projection;
+      target_pose.pose.position.y -= sin(yaw) * backward_projection;
+    }
+
+    // target_pose.pose.position.x += cos(yaw) * backward_projection;
+    // target_pose.pose.position.y += sin(yaw) * backward_projection;
     tf2_buffer_->transform(target_pose, target_pose, base_frame_);
 
     // Compute and publish controls
